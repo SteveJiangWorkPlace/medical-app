@@ -11,6 +11,8 @@ from app.api.search import router as search_router
 from app.api.source_records import router as source_records_router
 from app.config import get_settings
 from app.db import check_database, get_db
+from app.llm.factory import get_llm_provider
+from app.query_planning.planner import sanitize_error_message
 
 
 settings = get_settings()
@@ -37,6 +39,25 @@ app.include_router(rag_router, prefix="/api")
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "env": settings.app_env}
+
+
+@app.get("/cors/health")
+def cors_health() -> dict[str, list[str]]:
+    return {"allow_origins": settings.cors_origin_list}
+
+
+@app.get("/llm/health")
+def llm_health() -> dict[str, str]:
+    try:
+        llm = get_llm_provider()
+        raw = llm.generate_json('Return exactly this JSON object: {"status":"ok"}')
+    except Exception as exc:
+        return {
+            "status": "error",
+            "error_type": exc.__class__.__name__,
+            "error_message": sanitize_error_message(str(exc)),
+        }
+    return {"status": "ok", "raw_response": raw[:200]}
 
 
 @app.get("/db/health")

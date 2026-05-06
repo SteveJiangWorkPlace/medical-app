@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 
 from pydantic import ValidationError
@@ -15,23 +16,34 @@ from app.query_planning.whitelist import (
 from app.schemas import QueryPlan
 
 
+logger = logging.getLogger(__name__)
+
+
 def plan_query(question: str, llm: LLMProvider) -> tuple[QueryPlan, str]:
     prompt = build_query_plan_prompt(question)
     try:
         raw = llm.generate_json(prompt)
     except Exception as exc:
+        logger.warning("Query planner provider failed: %s: %s", exc.__class__.__name__, sanitize_error_message(str(exc)))
         fallback = fallback_query_plan(question, f"planner_provider_error: {exc.__class__.__name__}")
         return fallback, str(exc)
     try:
         data = json.loads(raw)
         return QueryPlan.model_validate(data), raw
     except (json.JSONDecodeError, ValidationError) as exc:
+        logger.warning("Query planner response parse failed: %s", exc.__class__.__name__)
         fallback = QueryPlan(
             intent="clarify",
             clarification_question="我没有可靠理解这个问题，请换一种更明确的问法，例如指定企业、采购单元、价格指标或排名方式。",
             assumptions=[f"planner_parse_error: {exc.__class__.__name__}"],
         )
         return fallback, raw
+
+
+def sanitize_error_message(message: str) -> str:
+    sanitized = re.sub(r"AIza[0-9A-Za-z_-]+", "[REDACTED_GOOGLE_API_KEY]", message)
+    sanitized = re.sub(r"sk-[0-9A-Za-z_-]+", "[REDACTED_OPENAI_API_KEY]", sanitized)
+    return sanitized[:500]
 
 
 def fallback_query_plan(question: str, reason: str) -> QueryPlan:

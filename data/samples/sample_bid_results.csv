@@ -1,0 +1,3 @@
+project_name,province,product_name,enterprise_name,winning_price,planned_volume,price_unit,volume_unit,publish_date,execution_start_date
+示例集采项目,江苏,一次性使用耗材A,示例企业,12.50,1000,元/件,件,2026-04-01,2026-05-01
+示例集采项目,江苏,一次性使用耗材B,示例企业,8.20,2000,元/件,件,2026-04-01,2026-05-01

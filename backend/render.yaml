@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: medical-rag-api
+    runtime: python
+    plan: starter
+    buildCommand: bash scripts/render_build.sh
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: EMBEDDING_DIMENSIONS
+        value: "1536"
+      - key: UPLOAD_DIR
+        value: data/raw

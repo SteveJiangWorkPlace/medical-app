@@ -307,6 +307,7 @@ class BidResultImportRequest(BaseModel):
     procurement_level: str | None = None
     procurement_scope: str | None = None
     procurement_type: str | None = None
+    is_continuation_procurement: bool = False
     alliance_name: str | None = None
     medical_device_field: str | None = None
     province: str | None = None
@@ -351,6 +352,7 @@ class PriceCatalogImportRequest(BaseModel):
     procurement_level: str | None = None
     procurement_scope: str | None = None
     procurement_type: str | None = None
+    is_continuation_procurement: bool = False
     alliance_name: str | None = None
     medical_device_field: str | None = None
     province: str | None = None
@@ -395,6 +397,7 @@ class PriceCatalogRead(BaseModel):
     procurement_level: str | None
     procurement_scope: str | None
     procurement_type: str | None
+    is_continuation_procurement: bool
     alliance_name: str | None
     medical_device_field: str | None
     province: str | None

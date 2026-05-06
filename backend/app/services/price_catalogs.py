@@ -18,6 +18,7 @@ def build_price_catalog_filters(
     medical_insurance_code: str | None = None,
     procurement_level: str | None = None,
     medical_device_field: str | None = None,
+    is_continuation_procurement: bool | None = None,
     province: str | None = None,
     keyword: str | None = None,
 ) -> Select:
@@ -33,6 +34,8 @@ def build_price_catalog_filters(
         statement = statement.where(DevicePriceCatalog.procurement_level == procurement_level)
     if medical_device_field:
         statement = statement.where(DevicePriceCatalog.medical_device_field == medical_device_field)
+    if is_continuation_procurement is not None:
+        statement = statement.where(DevicePriceCatalog.is_continuation_procurement == is_continuation_procurement)
     if province:
         statement = statement.where(DevicePriceCatalog.province == province)
     if enterprise_name:
@@ -69,6 +72,7 @@ def list_price_catalogs(
     medical_insurance_code: str | None = None,
     procurement_level: str | None = None,
     medical_device_field: str | None = None,
+    is_continuation_procurement: bool | None = None,
     province: str | None = None,
     keyword: str | None = None,
 ) -> tuple[list[PriceCatalogRead], int]:
@@ -86,6 +90,7 @@ def list_price_catalogs(
         medical_insurance_code=medical_insurance_code,
         procurement_level=procurement_level,
         medical_device_field=medical_device_field,
+        is_continuation_procurement=is_continuation_procurement,
         province=province,
         keyword=keyword,
     )

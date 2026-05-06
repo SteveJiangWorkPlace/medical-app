@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, Text, func
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
@@ -133,6 +133,7 @@ class BidResult(Base):
     procurement_level: Mapped[str | None] = mapped_column(Text)
     procurement_scope: Mapped[str | None] = mapped_column(Text)
     procurement_type: Mapped[str | None] = mapped_column(Text)
+    is_continuation_procurement: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     alliance_name: Mapped[str | None] = mapped_column(Text)
     province: Mapped[str | None] = mapped_column(Text)
     city: Mapped[str | None] = mapped_column(Text)
@@ -163,6 +164,7 @@ class DevicePriceCatalog(Base):
     procurement_level: Mapped[str | None] = mapped_column(Text)
     procurement_scope: Mapped[str | None] = mapped_column(Text)
     procurement_type: Mapped[str | None] = mapped_column(Text)
+    is_continuation_procurement: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     alliance_name: Mapped[str | None] = mapped_column(Text)
     province: Mapped[str | None] = mapped_column(Text)
     city: Mapped[str | None] = mapped_column(Text)

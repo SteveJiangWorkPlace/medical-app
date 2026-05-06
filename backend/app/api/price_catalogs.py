@@ -35,6 +35,7 @@ def list_price_catalogs_endpoint(
     medical_insurance_code: str | None = None,
     procurement_level: str | None = None,
     medical_device_field: str | None = None,
+    is_continuation_procurement: bool | None = None,
     province: str | None = None,
     keyword: str | None = None,
     db: Session = Depends(get_db),
@@ -50,6 +51,7 @@ def list_price_catalogs_endpoint(
         medical_insurance_code=medical_insurance_code,
         procurement_level=procurement_level,
         medical_device_field=medical_device_field,
+        is_continuation_procurement=is_continuation_procurement,
         province=province,
         keyword=keyword,
     )

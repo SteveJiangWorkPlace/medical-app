@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.db import check_database, get_db
 from app.llm.factory import get_llm_provider
 from app.query_planning.planner import sanitize_error_message
+from app.security import require_admin_api_key
 
 
 settings = get_settings()
@@ -42,12 +43,12 @@ def health() -> dict[str, str]:
 
 
 @app.get("/cors/health")
-def cors_health() -> dict[str, list[str]]:
+def cors_health(_: None = Depends(require_admin_api_key)) -> dict[str, list[str]]:
     return {"allow_origins": settings.cors_origin_list}
 
 
 @app.get("/llm/health")
-def llm_health() -> dict[str, str]:
+def llm_health(_: None = Depends(require_admin_api_key)) -> dict[str, str]:
     try:
         llm = get_llm_provider()
         raw = llm.generate_json('Return exactly this JSON object: {"status":"ok"}')

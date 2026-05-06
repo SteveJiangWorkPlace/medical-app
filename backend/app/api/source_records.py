@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.config import get_settings
 from app.ingestion.files import save_upload_file
+from app.security import require_admin_api_key
 from app.schemas import (
     ParsedDocumentRead,
     ParseSourceRequest,
@@ -27,12 +28,20 @@ router = APIRouter(prefix="/source-records", tags=["source records"])
 
 
 @router.post("", response_model=SourceRecordRead, status_code=status.HTTP_201_CREATED)
-def create_source_record_endpoint(payload: SourceRecordCreate, db: Session = Depends(get_db)) -> SourceRecordRead:
+def create_source_record_endpoint(
+    payload: SourceRecordCreate,
+    _: None = Depends(require_admin_api_key),
+    db: Session = Depends(get_db),
+) -> SourceRecordRead:
     return create_source_record(db, payload)
 
 
 @router.post("/upload", response_model=SourceRecordRead, status_code=status.HTTP_201_CREATED)
-def upload_source_file_endpoint(file: UploadFile = File(...), db: Session = Depends(get_db)) -> SourceRecordRead:
+def upload_source_file_endpoint(
+    file: UploadFile = File(...),
+    _: None = Depends(require_admin_api_key),
+    db: Session = Depends(get_db),
+) -> SourceRecordRead:
     settings = get_settings()
     original_name, storage_path = save_upload_file(settings.upload_dir, file)
     payload = SourceRecordCreate(
@@ -49,6 +58,7 @@ def upload_source_file_endpoint(file: UploadFile = File(...), db: Session = Depe
 def list_source_records_endpoint(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    _: None = Depends(require_admin_api_key),
     db: Session = Depends(get_db),
 ) -> SourceRecordList:
     records, total = list_source_records(db, limit=limit, offset=offset)
@@ -56,7 +66,11 @@ def list_source_records_endpoint(
 
 
 @router.get("/{record_id}", response_model=SourceRecordRead)
-def get_source_record_endpoint(record_id: int, db: Session = Depends(get_db)) -> SourceRecordRead:
+def get_source_record_endpoint(
+    record_id: int,
+    _: None = Depends(require_admin_api_key),
+    db: Session = Depends(get_db),
+) -> SourceRecordRead:
     record = get_source_record(db, record_id)
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source record not found")
@@ -67,6 +81,7 @@ def get_source_record_endpoint(record_id: int, db: Session = Depends(get_db)) ->
 def update_source_record_endpoint(
     record_id: int,
     payload: SourceRecordUpdate,
+    _: None = Depends(require_admin_api_key),
     db: Session = Depends(get_db),
 ) -> SourceRecordRead:
     record = update_source_record(db, record_id, payload)
@@ -79,6 +94,7 @@ def update_source_record_endpoint(
 def parse_url_source_record_endpoint(
     record_id: int,
     payload: ParseSourceRequest,
+    _: None = Depends(require_admin_api_key),
     db: Session = Depends(get_db),
 ) -> ParsedDocumentRead:
     try:
@@ -97,6 +113,7 @@ def parse_url_source_record_endpoint(
 def parse_file_source_record_endpoint(
     record_id: int,
     payload: ParseSourceRequest,
+    _: None = Depends(require_admin_api_key),
     db: Session = Depends(get_db),
 ) -> ParsedDocumentRead:
     try:

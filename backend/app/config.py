@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     llm_provider: str = "gemini"
     gemini_chat_model: str = "gemini-2.5-flash"
     llm_temperature: float = 0
+    admin_api_key: str | None = None
     http_proxy: str | None = None
     https_proxy: str | None = None
 

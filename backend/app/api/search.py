@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.db import get_db
 from app.embeddings.factory import get_embedding_provider
 from app.schemas import VectorSearchRequest, VectorSearchResponse, VectorSearchResult
+from app.security import require_admin_api_key
 from app.services.document_chunks import vector_search_chunks
 
 
@@ -12,7 +12,11 @@ router = APIRouter(prefix="/search", tags=["search"])
 
 
 @router.post("/vector", response_model=VectorSearchResponse)
-def vector_search_endpoint(payload: VectorSearchRequest, db: Session = Depends(get_db)) -> VectorSearchResponse:
+def vector_search_endpoint(
+    payload: VectorSearchRequest,
+    _: None = Depends(require_admin_api_key),
+    db: Session = Depends(get_db),
+) -> VectorSearchResponse:
     provider = get_embedding_provider()
     query_embedding = provider.embed_query(payload.query)
     rows = vector_search_chunks(

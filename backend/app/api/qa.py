@@ -22,6 +22,7 @@ from app.services.analysis_qa import answer_analysis_question
 from app.services.freeform_qa import answer_freeform_question
 from app.services.hybrid_qa import answer_hybrid_question
 from app.services.structured_qa import answer_structured_question
+from app.security import require_admin_api_key
 
 
 router = APIRouter(prefix="/qa", tags=["qa"])
@@ -47,6 +48,7 @@ def structured_qa_endpoint(
 @router.post("/analysis", response_model=AnalysisQuestionResponse)
 def analysis_qa_endpoint(
     payload: AnalysisQuestionRequest,
+    _: None = Depends(require_admin_api_key),
     db: Session = Depends(get_db),
 ) -> AnalysisQuestionResponse:
     result = answer_analysis_question(db, payload.question, payload.session_id)
@@ -62,7 +64,10 @@ def analysis_qa_endpoint(
 
 
 @router.post("/query-plan", response_model=QueryPlanResponse)
-def query_plan_endpoint(payload: QueryPlanRequest) -> QueryPlanResponse:
+def query_plan_endpoint(
+    payload: QueryPlanRequest,
+    _: None = Depends(require_admin_api_key),
+) -> QueryPlanResponse:
     llm = get_llm_provider()
     plan, raw = plan_query(payload.question, llm)
     try:
@@ -81,6 +86,7 @@ def query_plan_endpoint(payload: QueryPlanRequest) -> QueryPlanResponse:
 @router.post("/freeform", response_model=FreeformQuestionResponse)
 def freeform_qa_endpoint(
     payload: FreeformQuestionRequest,
+    _: None = Depends(require_admin_api_key),
     db: Session = Depends(get_db),
 ) -> FreeformQuestionResponse:
     result = answer_freeform_question(db, payload.question, payload.session_id)

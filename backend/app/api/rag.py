@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.schemas import RAGQuestionRequest, RAGQuestionResponse
+from app.security import require_admin_api_key
 from app.services.rag_qa import answer_rag_question
 
 
@@ -10,7 +11,11 @@ router = APIRouter(prefix="/rag", tags=["rag"])
 
 
 @router.post("/ask", response_model=RAGQuestionResponse)
-def rag_ask_endpoint(payload: RAGQuestionRequest, db: Session = Depends(get_db)) -> RAGQuestionResponse:
+def rag_ask_endpoint(
+    payload: RAGQuestionRequest,
+    _: None = Depends(require_admin_api_key),
+    db: Session = Depends(get_db),
+) -> RAGQuestionResponse:
     return answer_rag_question(
         db,
         question=payload.question,

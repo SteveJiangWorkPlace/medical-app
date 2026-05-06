@@ -341,6 +341,7 @@ function shouldShowTable(question: string, result: QueryExecutionResult): boolea
 }
 
 function shouldUseRag(question: string): boolean {
+  if (/价格|联动价|报价|排名|目录|条目|中标|集采中/.test(question)) return false;
   return /访谈|报告|新闻|资讯|政策|接续|3\+N|全国集采|盘点|技术|专家|怎么看|观点|趋势|格局|原因|为什么|派尔特.*情况|Q3|季度|研发|渠道|出海/.test(question);
 }
 

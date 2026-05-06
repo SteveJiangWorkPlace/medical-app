@@ -1,17 +1,41 @@
 import json
+from dataclasses import dataclass, field
 
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import aliased
 
 from app.llm.factory import get_llm_provider
 from app.query_planning.executor import execute_query_plan
 from app.query_planning.planner import plan_query
 from app.query_planning.validator import QueryPlanValidationError, validate_query_plan
-from app.schemas import FreeformQuestionResponse, QueryPlan
+from app.models import DevicePriceCatalog, Enterprise
+from app.schemas import FreeformQuestionResponse, QueryExecutionResult, QueryPlan, QueryFilter
+
+
+ApplicantEnterprise = aliased(Enterprise)
+ManufacturerEnterprise = aliased(Enterprise)
+
+
+@dataclass
+class FreeformContext:
+    last_enterprise_name: str | None = None
+    last_project_name: str | None = None
+    extras: dict = field(default_factory=dict)
+
+
+SESSION_CONTEXTS: dict[str, FreeformContext] = {}
 
 
 def answer_freeform_question(db: Session, question: str, session_id: str) -> FreeformQuestionResponse:
+    context = SESSION_CONTEXTS.setdefault(session_id, FreeformContext())
+    contextual_question = resolve_contextual_question(db, question, context)
+    special = answer_relative_enterprise_price(db, contextual_question, session_id, context)
+    if special:
+        return special
+
     llm = get_llm_provider()
-    plan, _ = plan_query(question, llm)
+    plan, _ = plan_query(contextual_question, llm)
     try:
         plan = validate_query_plan(plan)
     except QueryPlanValidationError as exc:
@@ -22,7 +46,8 @@ def answer_freeform_question(db: Session, question: str, session_id: str) -> Fre
         )
 
     result = execute_query_plan(db, plan)
-    answer = compose_answer(question, plan, result, llm)
+    update_context_from_result(context, result)
+    answer = compose_answer(contextual_question, plan, result, llm)
     return FreeformQuestionResponse(
         question=question,
         session_id=session_id,
@@ -32,6 +57,106 @@ def answer_freeform_question(db: Session, question: str, session_id: str) -> Fre
         assumptions=plan.assumptions,
         sources=["device_price_catalogs"],
         confidence="high" if plan.intent != "clarify" else "low",
+    )
+
+
+def resolve_contextual_question(db: Session, question: str, context: FreeformContext) -> str:
+    enterprise = find_enterprise_name(db, question)
+    if enterprise:
+        context.last_enterprise_name = enterprise
+        return question
+    if context.last_enterprise_name and any(token in question for token in ["它", "其", "该企业", "这家", "这家公司", "这个品牌"]):
+        return question.replace("它", context.last_enterprise_name).replace("其", context.last_enterprise_name)
+    return question
+
+
+def answer_relative_enterprise_price(
+    db: Session,
+    question: str,
+    session_id: str,
+    context: FreeformContext,
+) -> FreeformQuestionResponse | None:
+    if not asks_relative_price(question):
+        return None
+    enterprise = find_enterprise_name(db, question) or context.last_enterprise_name
+    if not enterprise:
+        return None
+
+    project_keyword = extract_project_keyword(question) or extract_project_keyword(context.last_project_name or "")
+    rows = enterprise_price_rows(db, enterprise, project_keyword)
+    if not rows:
+        return None
+
+    unit_rows = []
+    for unit in sorted({row["procurement_unit"] for row in rows if row["procurement_unit"]}):
+        unit_rows.extend(unit_price_comparison(db, enterprise, unit, project_keyword))
+
+    enterprise_prices = [row["linked_price"] for row in rows if row["linked_price"] is not None]
+    avg_price = sum(enterprise_prices) / len(enterprise_prices) if enterprise_prices else None
+    rank_rows = enterprise_avg_price_rank(db, project_keyword)
+    rank = next((index for index, row in enumerate(rank_rows, start=1) if row["enterprise_name"] == enterprise), None)
+
+    total_enterprises = len(rank_rows)
+    price_position = describe_price_position(rank, total_enterprises)
+    project_scope = f"{project_keyword}项目" if project_keyword else "当前可比项目"
+    answer_lines = [
+        f"{enterprise} 在{project_scope}中不是“低价前10未出现=没有记录”，而是需要单独看它自己的价格和全体分布。",
+        f"当前查到该企业 {len(rows)} 条目录记录，联动价格范围为 {format_value(min(enterprise_prices))} 至 {format_value(max(enterprise_prices))} 元，平均约 {format_value(avg_price)} 元。",
+    ]
+    if rank:
+        answer_lines.append(f"按企业平均联动价格从低到高排序，它位于第 {rank}/{total_enterprises}，整体属于{price_position}。")
+    if unit_rows:
+        samples = "; ".join(
+            f"{item['procurement_unit']}：本企业均价 {format_value(item['enterprise_avg_price'])} 元，同单元全体均价 {format_value(item['market_avg_price'])} 元"
+            for item in unit_rows[:3]
+        )
+        answer_lines.append(f"同采购单元对比看，{samples}。")
+    answer_lines.append(
+        "对市场份额的影响需要谨慎：数据库没有真实采购量或销量字段，只能用目录条目数近似观察覆盖面。价格偏高通常会降低纯价格竞争优势，但如果对应电动枪身/钉仓等更高端产品，可能反映产品结构和技术溢价，不能直接等同于份额下降。"
+    )
+
+    result_rows = [
+        {
+            "applicant_enterprise": enterprise,
+            "project_name": row["project_name"],
+            "procurement_unit": row["procurement_unit"],
+            "model": row["model"],
+            "linked_price": row["linked_price"],
+        }
+        for row in rows[:20]
+    ]
+    plan = QueryPlan(
+        intent="compare",
+        metric="linked_price",
+        aggregation="avg",
+        group_by=["applicant_enterprise"],
+        filters=[QueryFilter(field="applicant_enterprise", operator="contains", value=enterprise)],
+        order_by="linked_price",
+        order="asc",
+        limit=20,
+        assumptions=[
+            "价格按联动价格 linked_price 统计",
+            "相对价格先计算目标企业自身价格，再与同项目/同采购单元分布比较",
+            "市场份额不能由当前价格目录直接推导，目录条目数只能作为覆盖面 proxy",
+        ],
+    )
+    result = QueryExecutionResult(
+        columns=["applicant_enterprise", "project_name", "procurement_unit", "model", "linked_price"],
+        rows=result_rows,
+        total=len(rows),
+    )
+    context.last_enterprise_name = enterprise
+    if rows[0].get("project_name"):
+        context.last_project_name = rows[0]["project_name"]
+    return FreeformQuestionResponse(
+        question=question,
+        session_id=session_id,
+        answer="\n".join(answer_lines),
+        query_plan=plan,
+        result=result,
+        assumptions=plan.assumptions,
+        sources=["device_price_catalogs"],
+        confidence="high",
     )
 
 
@@ -80,6 +205,155 @@ def compose_answer(question: str, plan: QueryPlan, result, llm=None) -> str:
             lines.append("，".join(parts))
         return "\n".join(lines)
     return "已完成查询。"
+
+
+def asks_relative_price(question: str) -> bool:
+    has_price = any(token in question for token in ["价格", "联动价", "报价", "贵", "便宜"])
+    has_compare = any(token in question for token in ["相对", "其他品牌", "其他企业", "对比", "比较", "排名", "咋样", "如何"])
+    has_share = any(token in question for token in ["市场份额", "份额", "影响"])
+    return (has_price and has_compare) or has_share
+
+
+def find_enterprise_name(db: Session, question: str) -> str | None:
+    names = db.execute(select(Enterprise.standard_name).distinct()).scalars().all()
+    direct_matches = [name for name in names if name and name in question]
+    if direct_matches:
+        return sorted(direct_matches, key=len, reverse=True)[0]
+
+    aliases = {
+        "瑞奇": "天津瑞奇外科器械股份有限公司",
+        "健适瑞奇": "天津瑞奇外科器械股份有限公司",
+        "强生": "强生（上海）医疗器材有限公司",
+        "爱惜康": "强生（上海）医疗器材有限公司",
+        "派尔特": "北京派尔特医疗科技股份有限公司",
+    }
+    for alias, canonical in aliases.items():
+        if alias in question:
+            match = db.execute(
+                select(Enterprise.standard_name)
+                .where(Enterprise.standard_name.ilike(f"%{alias}%"))
+                .order_by(Enterprise.standard_name.asc())
+                .limit(1)
+            ).scalar_one_or_none()
+            return match or canonical
+    return None
+
+
+def extract_project_keyword(text: str) -> str | None:
+    if not text:
+        return None
+    for keyword in ["京津冀", "重庆", "湖南", "福建"]:
+        if keyword in text:
+            return keyword
+    return None
+
+
+def enterprise_price_rows(db: Session, enterprise: str, project_keyword: str | None) -> list[dict]:
+    statement = (
+        select(
+            DevicePriceCatalog.project_name,
+            DevicePriceCatalog.procurement_unit,
+            DevicePriceCatalog.model,
+            DevicePriceCatalog.linked_price,
+        )
+        .select_from(DevicePriceCatalog)
+        .outerjoin(ApplicantEnterprise, DevicePriceCatalog.applicant_enterprise_id == ApplicantEnterprise.id)
+        .outerjoin(ManufacturerEnterprise, DevicePriceCatalog.manufacturer_id == ManufacturerEnterprise.id)
+        .where(or_(ApplicantEnterprise.standard_name == enterprise, ManufacturerEnterprise.standard_name == enterprise))
+        .where(DevicePriceCatalog.linked_price.is_not(None))
+    )
+    if project_keyword:
+        statement = statement.where(DevicePriceCatalog.project_name.ilike(f"%{project_keyword}%"))
+    rows = db.execute(statement.order_by(DevicePriceCatalog.linked_price.asc())).all()
+    return [
+        {
+            "project_name": project_name,
+            "procurement_unit": procurement_unit,
+            "model": model,
+            "linked_price": float(linked_price),
+        }
+        for project_name, procurement_unit, model, linked_price in rows
+    ]
+
+
+def unit_price_comparison(db: Session, enterprise: str, procurement_unit: str, project_keyword: str | None) -> list[dict]:
+    statement = (
+        select(
+            func.avg(DevicePriceCatalog.linked_price).filter(
+                or_(ApplicantEnterprise.standard_name == enterprise, ManufacturerEnterprise.standard_name == enterprise)
+            ),
+            func.avg(DevicePriceCatalog.linked_price),
+            func.min(DevicePriceCatalog.linked_price),
+            func.max(DevicePriceCatalog.linked_price),
+            func.count(DevicePriceCatalog.id),
+        )
+        .select_from(DevicePriceCatalog)
+        .outerjoin(ApplicantEnterprise, DevicePriceCatalog.applicant_enterprise_id == ApplicantEnterprise.id)
+        .outerjoin(ManufacturerEnterprise, DevicePriceCatalog.manufacturer_id == ManufacturerEnterprise.id)
+        .where(DevicePriceCatalog.procurement_unit == procurement_unit)
+        .where(DevicePriceCatalog.linked_price.is_not(None))
+    )
+    if project_keyword:
+        statement = statement.where(DevicePriceCatalog.project_name.ilike(f"%{project_keyword}%"))
+    row = db.execute(statement).one()
+    enterprise_avg, market_avg, market_min, market_max, count = row
+    if enterprise_avg is None:
+        return []
+    return [
+        {
+            "procurement_unit": procurement_unit,
+            "enterprise_avg_price": float(enterprise_avg),
+            "market_avg_price": float(market_avg) if market_avg is not None else None,
+            "market_min_price": float(market_min) if market_min is not None else None,
+            "market_max_price": float(market_max) if market_max is not None else None,
+            "catalog_count": count,
+        }
+    ]
+
+
+def enterprise_avg_price_rank(db: Session, project_keyword: str | None) -> list[dict]:
+    statement = (
+        select(
+            ApplicantEnterprise.standard_name,
+            func.avg(DevicePriceCatalog.linked_price).label("avg_price"),
+            func.count(DevicePriceCatalog.id),
+        )
+        .select_from(DevicePriceCatalog)
+        .join(ApplicantEnterprise, DevicePriceCatalog.applicant_enterprise_id == ApplicantEnterprise.id)
+        .where(DevicePriceCatalog.linked_price.is_not(None))
+        .group_by(ApplicantEnterprise.standard_name)
+    )
+    if project_keyword:
+        statement = statement.where(DevicePriceCatalog.project_name.ilike(f"%{project_keyword}%"))
+    rows = db.execute(statement.order_by("avg_price")).all()
+    return [
+        {"enterprise_name": enterprise, "avg_price": float(avg_price), "catalog_count": count}
+        for enterprise, avg_price, count in rows
+    ]
+
+
+def describe_price_position(rank: int | None, total: int) -> str:
+    if not rank or not total:
+        return "无法判断"
+    percentile = rank / total
+    if percentile <= 0.33:
+        return "偏低价格带"
+    if percentile <= 0.66:
+        return "中间价格带"
+    return "偏高价格带"
+
+
+def update_context_from_result(context: FreeformContext, result: QueryExecutionResult) -> None:
+    for row in result.rows:
+        enterprise = row.get("applicant_enterprise") or row.get("manufacturer")
+        if isinstance(enterprise, str) and enterprise:
+            context.last_enterprise_name = enterprise
+            break
+    for row in result.rows:
+        project = row.get("project_name")
+        if isinstance(project, str) and project:
+            context.last_project_name = project
+            break
 
 
 def compose_answer_with_llm(question: str, plan: QueryPlan, result, llm) -> str:

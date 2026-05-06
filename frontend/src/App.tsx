@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Database, Loader2, RotateCcw, Search, Send, Sparkles } from "lucide-react";
 
 type QueryPlan = {
@@ -69,6 +69,20 @@ export function App() {
   const [sessionId, setSessionId] = useState(() => createSessionId());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const answerAreaRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    scrollAnswersToBottom();
+  }, [messages, error]);
+
+  function scrollAnswersToBottom() {
+    window.requestAnimationFrame(() => {
+      const element = answerAreaRef.current;
+      if (element) {
+        element.scrollTop = element.scrollHeight;
+      }
+    });
+  }
 
   async function askQuestion(event?: FormEvent) {
     event?.preventDefault();
@@ -195,7 +209,7 @@ export function App() {
         </aside>
 
         <section className="qa-panel">
-          <div className="answer-area">
+          <div className="answer-area" ref={answerAreaRef}>
             {error && <div className="error-box">{error}</div>}
 
             {messages.length > 0 && (

@@ -123,9 +123,12 @@ def metric_output_name(plan: QueryPlan) -> str:
 def apply_filters(statement: Select, filters: list[QueryFilter]) -> Select:
     for item in filters:
         column = resolve_column(item.field)
-        value = item.value
+        value = normalize_filter_value(item.field, item.value)
         if item.operator == "eq":
-            statement = statement.where(column == value)
+            if item.field in {"applicant_enterprise", "manufacturer"} and isinstance(value, str):
+                statement = statement.where(column.ilike(f"%{value}%"))
+            else:
+                statement = statement.where(column == value)
         elif item.operator == "contains":
             statement = statement.where(column.ilike(f"%{value}%"))
         elif item.operator == "gt":
@@ -137,6 +140,17 @@ def apply_filters(statement: Select, filters: list[QueryFilter]) -> Select:
         elif item.operator == "lte":
             statement = statement.where(column <= value)
     return statement
+
+
+def normalize_filter_value(field: str, value):
+    if not isinstance(value, str):
+        return value
+    normalized = value.strip()
+    if field == "province":
+        for suffix in ["省", "市", "自治区", "维吾尔自治区", "壮族自治区", "回族自治区"]:
+            if normalized.endswith(suffix):
+                return normalized[: -len(suffix)]
+    return normalized
 
 
 def resolve_column(field: str | None):

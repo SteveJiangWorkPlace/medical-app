@@ -64,7 +64,7 @@ const EXAMPLES = [
 ];
 
 export function App() {
-  const [question, setQuestion] = useState(EXAMPLES[0]);
+  const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState(() => createSessionId());
   const [error, setError] = useState("");
@@ -84,6 +84,7 @@ export function App() {
 
     setLoading(true);
     setError("");
+    setQuestion("");
     setMessages((current) => [
       ...current,
       userMessage,

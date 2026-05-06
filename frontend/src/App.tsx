@@ -45,6 +45,18 @@ type RAGAnswer = {
   confidence: string;
 };
 
+type PriceCatalogSummary = {
+  total: number;
+  project_count: number;
+  procurement_unit_count: number;
+  applicant_enterprise_count: number;
+  manufacturer_count: number;
+  medical_insurance_code_count: number;
+  min_price: number | null;
+  max_price: number | null;
+  avg_price: number | null;
+};
+
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -69,11 +81,26 @@ export function App() {
   const [sessionId, setSessionId] = useState(() => createSessionId());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState<PriceCatalogSummary | null>(null);
   const answerAreaRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    void loadSummary();
+  }, []);
 
   useEffect(() => {
     scrollAnswersToBottom();
   }, [messages, error]);
+
+  async function loadSummary() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/price-catalogs/summary`);
+      if (!response.ok) return;
+      setSummary((await response.json()) as PriceCatalogSummary);
+    } catch {
+      setSummary(null);
+    }
+  }
 
   function scrollAnswersToBottom() {
     window.requestAnimationFrame(() => {
@@ -189,10 +216,10 @@ export function App() {
           </div>
 
           <div className="metric-grid">
-            <Metric label="价格记录" value="690" />
-            <Metric label="采购单元" value="4" />
-            <Metric label="企业数" value="34" />
-            <Metric label="医保编码" value="690" />
+            <Metric label="价格记录" value={formatMetric(summary?.total)} />
+            <Metric label="采购单元" value={formatMetric(summary?.procurement_unit_count)} />
+            <Metric label="企业数" value={formatMetric(summary?.applicant_enterprise_count)} />
+            <Metric label="医保编码" value={formatMetric(summary?.medical_insurance_code_count)} />
           </div>
 
           <div className="examples">
@@ -261,6 +288,10 @@ export function App() {
 
 function createSessionId() {
   return `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function formatMetric(value: number | undefined): string {
+  return value === undefined ? "..." : value.toLocaleString("zh-CN");
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

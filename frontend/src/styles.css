@@ -134,6 +134,31 @@ textarea {
   overflow: auto;
   overscroll-behavior: contain;
   padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #c8c8c8 transparent;
+}
+
+.answer-area::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar,
+.inline-result-table-wrap::-webkit-scrollbar,
+.result-table-wrap::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.answer-area::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb,
+.inline-result-table-wrap::-webkit-scrollbar-thumb,
+.result-table-wrap::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #c8c8c8;
+}
+
+.answer-area::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track,
+.inline-result-table-wrap::-webkit-scrollbar-track,
+.result-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .panel-header {
@@ -263,7 +288,7 @@ textarea {
 .chat-message {
   width: fit-content;
   max-width: min(760px, 92%);
-  margin-bottom: 18px;
+  margin-bottom: 22px;
   padding: 0;
   border-radius: 0;
   white-space: pre-wrap;
@@ -272,6 +297,7 @@ textarea {
 
 .user-message {
   margin-left: auto;
+  margin-bottom: 28px;
   color: #111111;
 }
 

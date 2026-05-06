@@ -16,6 +16,10 @@ def answer_rag_question(
     session_id: str,
     limit: int = 5,
     document_type: str | None = None,
+    source_category: str | None = None,
+    content_scope: str | None = None,
+    research_type: str | None = None,
+    evidence_level: str | None = None,
     medical_device_field: str | None = None,
     company_name: str | None = None,
 ) -> RAGQuestionResponse:
@@ -24,6 +28,10 @@ def answer_rag_question(
         question=question,
         limit=limit,
         document_type=document_type,
+        source_category=source_category,
+        content_scope=content_scope,
+        research_type=research_type,
+        evidence_level=evidence_level,
         medical_device_field=medical_device_field,
         company_name=company_name,
     )
@@ -42,6 +50,10 @@ def retrieve_relevant_chunks(
     question: str,
     limit: int,
     document_type: str | None,
+    source_category: str | None,
+    content_scope: str | None,
+    research_type: str | None,
+    evidence_level: str | None,
     medical_device_field: str | None,
     company_name: str | None,
 ) -> list[RAGCitation]:
@@ -50,6 +62,10 @@ def retrieve_relevant_chunks(
         question=question,
         limit=limit,
         document_type=document_type,
+        source_category=source_category,
+        content_scope=content_scope,
+        research_type=research_type,
+        evidence_level=evidence_level,
         medical_device_field=medical_device_field,
         company_name=company_name,
     )
@@ -58,6 +74,10 @@ def retrieve_relevant_chunks(
         question=question,
         limit=limit,
         document_type=document_type,
+        source_category=source_category,
+        content_scope=content_scope,
+        research_type=research_type,
+        evidence_level=evidence_level,
         medical_device_field=medical_device_field,
         company_name=company_name,
     )
@@ -75,6 +95,10 @@ def try_vector_retrieve(
     question: str,
     limit: int,
     document_type: str | None,
+    source_category: str | None,
+    content_scope: str | None,
+    research_type: str | None,
+    evidence_level: str | None,
     medical_device_field: str | None,
     company_name: str | None,
 ) -> list[RAGCitation]:
@@ -86,6 +110,10 @@ def try_vector_retrieve(
             query_embedding=query_embedding,
             limit=limit,
             policy_type=document_type,
+            source_category=source_category,
+            content_scope=content_scope,
+            research_type=research_type,
+            evidence_level=evidence_level,
             medical_device_field=medical_device_field,
             company_name=company_name,
         )
@@ -102,6 +130,13 @@ def try_vector_retrieve(
                 title=title,
                 document_type=chunk.policy_type,
                 source_name=chunk.source_name,
+                source_category=chunk.source_category,
+                source_channel=chunk.source_channel,
+                publisher=chunk.publisher,
+                publisher_type=chunk.publisher_type,
+                content_scope=chunk.content_scope,
+                research_type=chunk.research_type,
+                evidence_level=chunk.evidence_level,
                 medical_device_field=chunk.medical_device_field,
                 company_name=chunk.company_name,
                 snippet=shorten(chunk.chunk_text),
@@ -116,6 +151,10 @@ def keyword_retrieve(
     question: str,
     limit: int,
     document_type: str | None,
+    source_category: str | None,
+    content_scope: str | None,
+    research_type: str | None,
+    evidence_level: str | None,
     medical_device_field: str | None,
     company_name: str | None,
 ) -> list[RAGCitation]:
@@ -126,6 +165,14 @@ def keyword_retrieve(
     )
     if document_type:
         statement = statement.where(DocumentChunk.policy_type == document_type)
+    if source_category:
+        statement = statement.where(DocumentChunk.source_category == source_category)
+    if content_scope:
+        statement = statement.where(DocumentChunk.content_scope == content_scope)
+    if research_type:
+        statement = statement.where(DocumentChunk.research_type == research_type)
+    if evidence_level:
+        statement = statement.where(DocumentChunk.evidence_level == evidence_level)
     if medical_device_field:
         statement = statement.where(DocumentChunk.medical_device_field == medical_device_field)
     if company_name:
@@ -148,6 +195,13 @@ def keyword_retrieve(
             title=title,
             document_type=chunk.policy_type,
             source_name=chunk.source_name,
+            source_category=chunk.source_category,
+            source_channel=chunk.source_channel,
+            publisher=chunk.publisher,
+            publisher_type=chunk.publisher_type,
+            content_scope=chunk.content_scope,
+            research_type=chunk.research_type,
+            evidence_level=chunk.evidence_level,
             medical_device_field=chunk.medical_device_field,
             company_name=chunk.company_name,
             snippet=shorten(chunk.chunk_text),

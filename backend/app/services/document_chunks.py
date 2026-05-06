@@ -28,6 +28,16 @@ def create_chunks_for_document(
             effective_date=document.effective_date,
             policy_type=document.document_type,
             source_name=document.source_name,
+            source_category=document.source_category,
+            source_channel=document.source_channel,
+            publisher=document.publisher,
+            publisher_type=document.publisher_type,
+            author=document.author,
+            source_url=document.source_url,
+            content_scope=document.content_scope,
+            research_type=document.research_type,
+            evidence_level=document.evidence_level,
+            geographic_scope=document.geographic_scope,
             medical_device_field=document.medical_device_field,
             company_name=document.company_name,
             tags=document.tags,
@@ -75,6 +85,10 @@ def vector_search_chunks(
     limit: int = 5,
     province: str | None = None,
     policy_type: str | None = None,
+    source_category: str | None = None,
+    content_scope: str | None = None,
+    research_type: str | None = None,
+    evidence_level: str | None = None,
     medical_device_field: str | None = None,
     company_name: str | None = None,
 ):
@@ -84,6 +98,14 @@ def vector_search_chunks(
         statement = statement.where(DocumentChunk.province == province)
     if policy_type:
         statement = statement.where(DocumentChunk.policy_type == policy_type)
+    if source_category:
+        statement = statement.where(DocumentChunk.source_category == source_category)
+    if content_scope:
+        statement = statement.where(DocumentChunk.content_scope == content_scope)
+    if research_type:
+        statement = statement.where(DocumentChunk.research_type == research_type)
+    if evidence_level:
+        statement = statement.where(DocumentChunk.evidence_level == evidence_level)
     if medical_device_field:
         statement = statement.where(DocumentChunk.medical_device_field == medical_device_field)
     if company_name:

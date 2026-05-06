@@ -5,6 +5,34 @@ from pydantic import BaseModel, Field, HttpUrl, model_validator
 
 
 SourceType = Literal["file", "url", "manual"]
+SourceCategory = Literal[
+    "industry_report",
+    "company_report",
+    "industry_news",
+    "company_website",
+    "expert_interview",
+    "policy_document",
+    "procurement_notice",
+    "academic_literature",
+    "financial_report",
+    "other",
+]
+SourceChannel = Literal[
+    "broker_research",
+    "consulting_report",
+    "news_media",
+    "company_official",
+    "government_platform",
+    "academic_database",
+    "conference",
+    "internal_note",
+    "manual_upload",
+    "other",
+]
+PublisherType = Literal["brand", "industry_org", "media", "government", "broker", "consulting", "academic", "internal", "other"]
+ContentScope = Literal["industry", "brand", "product", "policy", "market_access", "pricing", "technology", "channel", "other"]
+ResearchType = Literal["primary", "secondary", "mixed", "official_disclosure", "news", "opinion", "other"]
+EvidenceLevel = Literal["official", "high", "medium", "low", "unknown"]
 
 
 class SourceRecordBase(BaseModel):
@@ -66,6 +94,16 @@ class ParsedDocumentCreate(BaseModel):
     title: str
     document_type: str | None = None
     source_name: str | None = None
+    source_category: SourceCategory | None = None
+    source_channel: SourceChannel | None = None
+    publisher: str | None = None
+    publisher_type: PublisherType | None = None
+    author: str | None = None
+    source_url: str | None = None
+    content_scope: ContentScope | None = None
+    research_type: ResearchType | None = None
+    evidence_level: EvidenceLevel | None = None
+    geographic_scope: str | None = None
     medical_device_field: str | None = None
     company_name: str | None = None
     tags: list[str] = Field(default_factory=list)
@@ -84,6 +122,16 @@ class ParsedDocumentRead(BaseModel):
     title: str
     document_type: str | None
     source_name: str | None
+    source_category: SourceCategory | None
+    source_channel: SourceChannel | None
+    publisher: str | None
+    publisher_type: PublisherType | None
+    author: str | None
+    source_url: str | None
+    content_scope: ContentScope | None
+    research_type: ResearchType | None
+    evidence_level: EvidenceLevel | None
+    geographic_scope: str | None
     medical_device_field: str | None
     company_name: str | None
     tags: list[str] | None
@@ -107,6 +155,16 @@ class ParsedDocumentList(BaseModel):
 class ParseSourceRequest(BaseModel):
     document_type: str | None = None
     source_name: str | None = None
+    source_category: SourceCategory | None = None
+    source_channel: SourceChannel | None = None
+    publisher: str | None = None
+    publisher_type: PublisherType | None = None
+    author: str | None = None
+    source_url: str | None = None
+    content_scope: ContentScope | None = None
+    research_type: ResearchType | None = None
+    evidence_level: EvidenceLevel | None = None
+    geographic_scope: str | None = None
     medical_device_field: str | None = None
     company_name: str | None = None
     tags: list[str] = Field(default_factory=list)
@@ -128,6 +186,16 @@ class DocumentChunkRead(BaseModel):
     effective_date: date | None
     policy_type: str | None
     source_name: str | None
+    source_category: SourceCategory | None
+    source_channel: SourceChannel | None
+    publisher: str | None
+    publisher_type: PublisherType | None
+    author: str | None
+    source_url: str | None
+    content_scope: ContentScope | None
+    research_type: ResearchType | None
+    evidence_level: EvidenceLevel | None
+    geographic_scope: str | None
     medical_device_field: str | None
     company_name: str | None
     tags: list[str] | None
@@ -164,6 +232,9 @@ class VectorSearchRequest(BaseModel):
     limit: int = Field(default=5, ge=1, le=20)
     province: str | None = None
     policy_type: str | None = None
+    source_category: SourceCategory | None = None
+    content_scope: ContentScope | None = None
+    research_type: ResearchType | None = None
     medical_device_field: str | None = None
     company_name: str | None = None
 
@@ -176,6 +247,10 @@ class VectorSearchResult(BaseModel):
     province: str | None
     policy_type: str | None
     source_name: str | None
+    source_category: SourceCategory | None = None
+    content_scope: ContentScope | None = None
+    research_type: ResearchType | None = None
+    evidence_level: EvidenceLevel | None = None
     medical_device_field: str | None
     company_name: str | None
     publish_date: date | None
@@ -191,6 +266,10 @@ class RAGQuestionRequest(BaseModel):
     session_id: str = "local-test"
     limit: int = Field(default=5, ge=1, le=12)
     document_type: str | None = None
+    source_category: SourceCategory | None = None
+    content_scope: ContentScope | None = None
+    research_type: ResearchType | None = None
+    evidence_level: EvidenceLevel | None = None
     medical_device_field: str | None = None
     company_name: str | None = None
 
@@ -201,6 +280,13 @@ class RAGCitation(BaseModel):
     title: str | None = None
     document_type: str | None = None
     source_name: str | None = None
+    source_category: SourceCategory | None = None
+    source_channel: SourceChannel | None = None
+    publisher: str | None = None
+    publisher_type: PublisherType | None = None
+    content_scope: ContentScope | None = None
+    research_type: ResearchType | None = None
+    evidence_level: EvidenceLevel | None = None
     medical_device_field: str | None = None
     company_name: str | None = None
     snippet: str

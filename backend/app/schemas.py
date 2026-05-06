@@ -439,6 +439,11 @@ class PriceCatalogSummary(BaseModel):
     applicant_enterprise_count: int
     manufacturer_count: int
     medical_insurance_code_count: int
+    document_count: int
+    industry_report_count: int
+    company_report_count: int
+    interview_record_count: int
+    news_report_count: int
     min_price: float | None
     max_price: float | None
     avg_price: float | None

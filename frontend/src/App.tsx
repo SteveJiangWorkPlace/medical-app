@@ -52,6 +52,11 @@ type PriceCatalogSummary = {
   applicant_enterprise_count: number;
   manufacturer_count: number;
   medical_insurance_code_count: number;
+  document_count: number;
+  industry_report_count: number;
+  company_report_count: number;
+  interview_record_count: number;
+  news_report_count: number;
   min_price: number | null;
   max_price: number | null;
   avg_price: number | null;
@@ -211,15 +216,15 @@ export function App() {
           <div className="brand">
             <Database size={22} />
             <div>
-              <strong>医疗科技市场洞察数据集</strong>
+              <strong>腔镜吻合器集采数据集</strong>
             </div>
           </div>
 
           <div className="metric-grid">
-            <Metric label="价格记录" value={formatMetric(summary?.total)} />
-            <Metric label="采购单元" value={formatMetric(summary?.procurement_unit_count)} />
-            <Metric label="企业数" value={formatMetric(summary?.applicant_enterprise_count)} />
-            <Metric label="医保编码" value={formatMetric(summary?.medical_insurance_code_count)} />
+            <Metric label="集采数据" value={formatMetric(summary?.total, "条")} />
+            <Metric label="行业报告" value={formatMetric(summary?.industry_report_count, "篇")} />
+            <Metric label="访谈记录" value={formatMetric(summary?.interview_record_count, "篇")} />
+            <Metric label="新闻报告" value={formatMetric(summary?.news_report_count, "篇")} />
           </div>
 
           <div className="examples">
@@ -290,8 +295,8 @@ function createSessionId() {
   return `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function formatMetric(value: number | undefined): string {
-  return value === undefined ? "..." : value.toLocaleString("zh-CN");
+function formatMetric(value: number | undefined, unit = ""): string {
+  return value === undefined ? "..." : `${value.toLocaleString("zh-CN")}${unit}`;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -336,7 +341,7 @@ function shouldShowTable(question: string, result: QueryExecutionResult): boolea
 }
 
 function shouldUseRag(question: string): boolean {
-  return /访谈|报告|专家|怎么看|观点|趋势|格局|原因|为什么|派尔特.*情况|Q3|季度|研发|渠道|出海/.test(question);
+  return /访谈|报告|新闻|资讯|政策|接续|3\+N|全国集采|盘点|技术|专家|怎么看|观点|趋势|格局|原因|为什么|派尔特.*情况|Q3|季度|研发|渠道|出海/.test(question);
 }
 
 function humanColumnName(column: string): string {

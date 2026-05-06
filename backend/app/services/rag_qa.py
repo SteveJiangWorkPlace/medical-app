@@ -178,12 +178,22 @@ def keyword_retrieve(
     if company_name:
         statement = statement.where(DocumentChunk.company_name == company_name)
     if terms:
-        statement = statement.where(or_(*[DocumentChunk.chunk_text.ilike(f"%{term}%") for term in terms[:12]]))
-    rows = db.execute(statement.limit(80)).all()
+        statement = statement.where(
+            or_(
+                *[
+                    or_(
+                        DocumentChunk.chunk_text.ilike(f"%{term}%"),
+                        ParsedDocument.title.ilike(f"%{term}%"),
+                    )
+                    for term in terms[:12]
+                ]
+            )
+        )
+    rows = db.execute(statement.order_by(DocumentChunk.created_at.desc()).limit(300)).all()
 
     scored = []
     for chunk, title in rows:
-        score = keyword_score(chunk.chunk_text, terms)
+        score = keyword_score(f"{title}\n{chunk.chunk_text}", terms)
         if score > 0:
             scored.append((score, chunk, title))
     scored.sort(key=lambda item: item[0], reverse=True)
@@ -300,9 +310,18 @@ def compose_with_llm(question: str, citations: list[RAGCitation]) -> str:
 def extract_terms(question: str) -> list[str]:
     base = [term for term in re.split(r"[\s，。！？、,.?;；：:（）()]+", question) if len(term) >= 2]
     domain_terms = [
+        "京津冀",
+        "3+N",
+        "3＋N",
         "派尔特",
         "吻合器",
+        "腔镜吻合器",
         "集采",
+        "接续",
+        "接续采购",
+        "带量接续",
+        "带量联动",
+        "全国集采",
         "价格",
         "增长",
         "收入",

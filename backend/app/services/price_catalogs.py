@@ -1,7 +1,7 @@
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
-from app.models import DevicePriceCatalog, Enterprise
+from app.models import DevicePriceCatalog, Enterprise, ParsedDocument
 from app.schemas import PriceCatalogFacets, PriceCatalogRead, PriceCatalogSummary
 
 
@@ -130,6 +130,12 @@ def get_price_catalog_summary(db: Session) -> PriceCatalogSummary:
             func.avg(DevicePriceCatalog.linked_price),
         )
     ).one()
+    document_counts = dict(
+        db.execute(
+            select(ParsedDocument.source_category, func.count(ParsedDocument.id))
+            .group_by(ParsedDocument.source_category)
+        ).all()
+    )
     return PriceCatalogSummary(
         total=row[0],
         project_count=row[1],
@@ -137,6 +143,11 @@ def get_price_catalog_summary(db: Session) -> PriceCatalogSummary:
         applicant_enterprise_count=row[3],
         manufacturer_count=row[4],
         medical_insurance_code_count=row[5],
+        document_count=sum(document_counts.values()),
+        industry_report_count=document_counts.get("industry_report", 0),
+        company_report_count=document_counts.get("company_report", 0),
+        interview_record_count=document_counts.get("expert_interview", 0),
+        news_report_count=document_counts.get("industry_news", 0),
         min_price=float(row[6]) if row[6] is not None else None,
         max_price=float(row[7]) if row[7] is not None else None,
         avg_price=float(row[8]) if row[8] is not None else None,

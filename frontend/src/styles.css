@@ -14,6 +14,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 button,
@@ -22,28 +23,32 @@ textarea {
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
   padding: 28px;
   background: #f6f6f6;
+  overflow: hidden;
 }
 
 .workspace {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 22px;
+  height: 100%;
   max-width: 1280px;
   margin: 0 auto;
+  min-height: 0;
 }
 
 .sidebar,
 .qa-panel {
-  min-height: calc(100vh - 48px);
+  min-height: 0;
   background: #ffffff;
 }
 
 .sidebar {
   padding: 24px;
   border-radius: 30px;
+  overflow: auto;
 }
 
 .brand {
@@ -119,6 +124,7 @@ textarea {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 18px;
+  min-height: 0;
   padding: 0;
   background: transparent;
 }
@@ -126,6 +132,8 @@ textarea {
 .answer-area {
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
 }
 
 .panel-header {
@@ -454,17 +462,33 @@ textarea {
 }
 
 @media (max-width: 860px) {
+  body {
+    overflow: auto;
+  }
+
   .app-shell {
+    min-height: 100vh;
+    height: auto;
     padding: 12px;
+    overflow: visible;
   }
 
   .workspace {
     grid-template-columns: 1fr;
+    height: auto;
   }
 
   .sidebar,
   .qa-panel {
     min-height: auto;
+  }
+
+  .qa-panel {
+    min-height: calc(100vh - 24px);
+  }
+
+  .answer-area {
+    max-height: calc(100vh - 210px);
   }
 
   .panel-header,

@@ -21,28 +21,22 @@ type QueryExecutionResult = {
   total: number;
 };
 
-type FreeformAnswer = {
+type HybridAnswer = {
   question: string;
   session_id: string;
   answer: string;
   query_plan: QueryPlan;
   result: QueryExecutionResult;
-  assumptions: string[];
-  sources: string[];
-  confidence: string;
-};
-
-type RAGAnswer = {
-  question: string;
-  session_id: string;
-  answer: string;
   citations: Array<{
     document_id: number;
     chunk_id: number;
     title: string | null;
     snippet: string;
   }>;
+  assumptions: string[];
+  sources: string[];
   confidence: string;
+  context: Record<string, unknown>;
 };
 
 type PriceCatalogSummary = {
@@ -137,27 +131,25 @@ export function App() {
       { id: assistantMessageId, role: "assistant", content: "正在分析", streaming: true },
     ]);
     try {
-      const useRag = shouldUseRag(text);
-      const response = await fetch(`${API_BASE_URL}${useRag ? "/api/rag/ask" : "/api/qa/freeform"}`, {
+      const response = await fetch(`${API_BASE_URL}/api/qa/hybrid`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: text,
           session_id: sessionId,
-          ...(useRag ? { medical_device_field: "吻合器", company_name: text.includes("派尔特") ? "派尔特" : undefined } : {}),
         }),
       });
       if (!response.ok) {
         throw new Error(`接口返回 ${response.status}`);
       }
-      const payload = (await response.json()) as FreeformAnswer | RAGAnswer;
+      const payload = (await response.json()) as HybridAnswer;
       setMessages((current) =>
         current.map((message) =>
           message.id === assistantMessageId
             ? {
                 ...message,
-                result: "result" in payload ? payload.result : undefined,
-                showTable: "result" in payload ? shouldShowTable(text, payload.result) : false,
+                result: payload.result,
+                showTable: shouldShowTable(text, payload.result),
               }
             : message,
         ),
@@ -338,11 +330,6 @@ function shouldShowTable(question: string, result: QueryExecutionResult): boolea
   if (result.rows.length <= 1) return false;
   if (question.match(/表格|列表|列出|列给我|所有|明细|有哪些/)) return true;
   return result.columns.length >= 2 && result.rows.length >= 3;
-}
-
-function shouldUseRag(question: string): boolean {
-  if (/价格|联动价|报价|排名|目录|条目|中标|集采中/.test(question)) return false;
-  return /访谈|报告|新闻|资讯|政策|接续|3\+N|全国集采|盘点|技术|专家|怎么看|观点|趋势|格局|原因|为什么|派尔特.*情况|Q3|季度|研发|渠道|出海/.test(question);
 }
 
 function humanColumnName(column: string): string {

@@ -8,6 +8,8 @@ from app.schemas import (
     AnalysisQuestionResponse,
     FreeformQuestionRequest,
     FreeformQuestionResponse,
+    HybridQuestionRequest,
+    HybridQuestionResponse,
     QueryPlanRequest,
     QueryPlanResponse,
     StructuredQuestionRequest,
@@ -18,6 +20,7 @@ from app.query_planning.planner import plan_query
 from app.query_planning.validator import QueryPlanValidationError, validate_query_plan
 from app.services.analysis_qa import answer_analysis_question
 from app.services.freeform_qa import answer_freeform_question
+from app.services.hybrid_qa import answer_hybrid_question
 from app.services.structured_qa import answer_structured_question
 
 
@@ -90,6 +93,30 @@ def freeform_qa_endpoint(
             "confidence": result.confidence,
             "session_id": payload.session_id,
             "query_plan": result.query_plan.model_dump(),
+        },
+    )
+    db.add(log)
+    db.commit()
+    return result
+
+
+@router.post("/hybrid", response_model=HybridQuestionResponse)
+def hybrid_qa_endpoint(
+    payload: HybridQuestionRequest,
+    db: Session = Depends(get_db),
+) -> HybridQuestionResponse:
+    result = answer_hybrid_question(db, payload.question, payload.session_id, payload.limit)
+    log = QALog(
+        question=payload.question,
+        route_type=f"hybrid:{result.query_plan.intent}",
+        answer=result.answer,
+        sources={
+            "tables": result.sources,
+            "confidence": result.confidence,
+            "session_id": payload.session_id,
+            "query_plan": result.query_plan.model_dump(),
+            "citations": [citation.model_dump() for citation in result.citations],
+            "context": result.context,
         },
     )
     db.add(log)

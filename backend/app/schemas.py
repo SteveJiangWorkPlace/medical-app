@@ -545,3 +545,22 @@ class FreeformQuestionResponse(BaseModel):
     assumptions: list[str]
     sources: list[str]
     confidence: str
+
+
+class HybridQuestionRequest(BaseModel):
+    question: str = Field(min_length=1)
+    session_id: str = "local-test"
+    limit: int = Field(default=6, ge=1, le=12)
+
+
+class HybridQuestionResponse(BaseModel):
+    question: str
+    session_id: str
+    answer: str
+    query_plan: QueryPlan
+    result: QueryExecutionResult
+    citations: list[RAGCitation]
+    assumptions: list[str]
+    sources: list[str]
+    confidence: str
+    context: dict

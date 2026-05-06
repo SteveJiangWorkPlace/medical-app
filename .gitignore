@@ -16,3 +16,4 @@ coverage/
 *.tsbuildinfo
 *.dump
 *.backup
+exports/

@@ -118,6 +118,7 @@ def try_vector_retrieve(
             company_name=company_name,
         )
     except Exception:
+        db.rollback()
         return []
 
     citations = []

@@ -34,7 +34,7 @@ def answer_hybrid_question(db: Session, question: str, session_id: str, limit: i
     update_context_from_structured(context, structured.result)
 
     enterprise = find_enterprise_name(db, contextual_question) or context.last_enterprise_name
-    rag_query = build_rag_query(contextual_question, structured.answer, enterprise)
+    rag_query = build_rag_query(contextual_question, enterprise)
     citations = retrieve_relevant_chunks(
         db,
         question=rag_query,
@@ -133,7 +133,7 @@ def cache_response(db: Session, contextual_question: str, context: HybridContext
 
 
 def cache_key(question: str, context: HybridContext) -> str:
-    return hashlib.sha256(question.strip().lower().encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"v2:{question.strip().lower()}".encode("utf-8")).hexdigest()
 
 
 def resolve_context(question: str, context: HybridContext) -> str:
@@ -145,8 +145,8 @@ def resolve_context(question: str, context: HybridContext) -> str:
     return result
 
 
-def build_rag_query(question: str, structured_answer: str, enterprise: str | None) -> str:
-    parts = [question, structured_answer]
+def build_rag_query(question: str, enterprise: str | None) -> str:
+    parts = [question]
     if enterprise:
         parts.append(enterprise)
     return "\n".join(parts)

@@ -57,6 +57,7 @@ def retrieve_relevant_chunks(
     medical_device_field: str | None,
     company_name: str | None,
 ) -> list[RAGCitation]:
+    terms = extract_terms(question)
     vector_citations = try_vector_retrieve(
         db,
         question=question,
@@ -87,7 +88,8 @@ def retrieve_relevant_chunks(
         existing = merged.get(item.chunk_id)
         if existing is None or (item.score or 0) > (existing.score or 0):
             merged[item.chunk_id] = item
-    return sorted(merged.values(), key=lambda item: item.score or 0, reverse=True)[:limit]
+    relevant = filter_relevant_citations(list(merged.values()), terms)
+    return sorted(relevant, key=lambda item: item.score or 0, reverse=True)[:limit]
 
 
 def try_vector_retrieve(
@@ -309,12 +311,29 @@ def compose_with_llm(question: str, citations: list[RAGCitation]) -> str:
 
 
 def extract_terms(question: str) -> list[str]:
-    base = [term for term in re.split(r"[\s，。！？、,.?;；：:（）()]+", question) if len(term) >= 2]
+    base = [
+        term
+        for term in re.split(r"[\s，。！？、,.?;；：:（）()]+", question)
+        if len(term) >= 2 and not is_generic_term(term)
+    ]
     domain_terms = [
         "京津冀",
         "3+N",
         "3＋N",
+        "瑞奇",
+        "天津瑞奇",
+        "健适瑞奇",
         "派尔特",
+        "强生",
+        "爱惜康",
+        "逸思",
+        "湖南",
+        "福建",
+        "重庆",
+        "联盟",
+        "8省",
+        "10省",
+        "15省",
         "吻合器",
         "腔镜吻合器",
         "集采",
@@ -323,7 +342,13 @@ def extract_terms(question: str) -> list[str]:
         "带量接续",
         "带量联动",
         "全国集采",
+        "中标",
+        "拟中选",
         "价格",
+        "联动价格",
+        "降价",
+        "市场份额",
+        "份额",
         "增长",
         "收入",
         "利润",
@@ -335,8 +360,7 @@ def extract_terms(question: str) -> list[str]:
         "Q3",
         "2025",
     ]
-    sliding = [question[index : index + 2] for index in range(max(0, len(question) - 1))]
-    terms = [*base, *[term for term in domain_terms if term in question], *sliding]
+    terms = [*base, *[term for term in domain_terms if term in question]]
     seen = set()
     result = []
     for term in terms:
@@ -344,6 +368,59 @@ def extract_terms(question: str) -> list[str]:
             seen.add(term)
             result.append(term)
     return result
+
+
+def filter_relevant_citations(citations: list[RAGCitation], terms: list[str]) -> list[RAGCitation]:
+    if not citations:
+        return []
+    if not terms:
+        return citations
+
+    required_entity_terms = [term for term in terms if term in {"瑞奇", "天津瑞奇", "健适瑞奇", "派尔特", "强生", "爱惜康", "逸思"}]
+    required_project_terms = [term for term in terms if term in {"京津冀", "3+N", "3＋N", "湖南", "福建", "重庆", "8省", "10省", "15省"}]
+
+    relevant = []
+    for citation in citations:
+        text = citation_search_text(citation)
+        if required_entity_terms and not any(term in text for term in required_entity_terms):
+            continue
+        if required_project_terms and not any(term in text for term in required_project_terms):
+            continue
+        if keyword_score(text, terms) <= 0:
+            continue
+        relevant.append(citation)
+    return relevant
+
+
+def citation_search_text(citation: RAGCitation) -> str:
+    parts = [
+        citation.title,
+        citation.source_name,
+        citation.publisher,
+        citation.company_name,
+        citation.medical_device_field,
+        citation.snippet,
+    ]
+    return "\n".join(part for part in parts if part)
+
+
+def is_generic_term(term: str) -> bool:
+    return term in {
+        "为什么",
+        "怎么",
+        "如何",
+        "哪些",
+        "多少",
+        "是否",
+        "有没有",
+        "相关",
+        "影响",
+        "情况",
+        "资料",
+        "信息",
+        "数据",
+        "查询",
+    }
 
 
 def extract_answer_points(question: str, citations: list[RAGCitation]) -> list[str]:

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Database, Loader2, RotateCcw, Search, Send, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Database, Loader2, RotateCcw, Search, Send, Sparkles } from "lucide-react";
 
 type QueryPlan = {
   intent: string;
@@ -344,24 +344,32 @@ function ResultTable({ result }: { result: QueryExecutionResult }) {
 }
 
 function CitationList({ citations }: { citations: Citation[] }) {
+  const [expanded, setExpanded] = useState(false);
   const unique = citations
     .filter((citation, index, list) => list.findIndex((item) => item.chunk_id === citation.chunk_id) === index)
     .slice(0, 5);
   if (unique.length === 0) return null;
   return (
     <div className="citation-list">
-      <div className="citation-heading">资料来源</div>
-      {unique.map((citation) => (
-        <div className="citation-item" key={`${citation.document_id}-${citation.chunk_id}`}>
-          <div className="citation-title">{citation.title || citation.source_name || `文档 ${citation.document_id}`}</div>
-          <div className="citation-meta">
-            {[humanSourceCategory(citation.source_category), citation.publisher, humanContentScope(citation.content_scope), citation.company_name]
-              .filter(Boolean)
-              .join(" · ")}
-          </div>
-          <p>{trimSnippet(citation.snippet)}</p>
+      <button className="citation-toggle" type="button" onClick={() => setExpanded((value) => !value)}>
+        {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+        资料来源 {unique.length} 条
+      </button>
+      {expanded && (
+        <div className="citation-items">
+          {unique.map((citation) => (
+            <div className="citation-item" key={`${citation.document_id}-${citation.chunk_id}`}>
+              <div className="citation-title">{citation.title || citation.source_name || `文档 ${citation.document_id}`}</div>
+              <div className="citation-meta">
+                {[humanSourceCategory(citation.source_category), citation.publisher, humanContentScope(citation.content_scope), citation.company_name]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </div>
+              <p>{trimSnippet(citation.snippet)}</p>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }

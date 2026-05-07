@@ -363,11 +363,25 @@ textarea {
   color: #666666;
 }
 
-.citation-heading {
-  margin-bottom: 6px;
+.citation-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: #777777;
   font-size: 11px;
   font-weight: 700;
+  cursor: pointer;
+}
+
+.citation-toggle:hover {
+  color: #444444;
+}
+
+.citation-items {
+  margin-top: 6px;
 }
 
 .citation-item {

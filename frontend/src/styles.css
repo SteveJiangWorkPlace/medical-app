@@ -331,22 +331,22 @@ textarea {
 .inline-result-table {
   width: 100%;
   border-collapse: collapse;
-  color: #111111;
+  color: #666666;
   font: inherit;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .inline-result-table th,
 .inline-result-table td {
-  padding: 7px 9px;
+  padding: 6px 8px;
   border-bottom: 1px solid #e8e8e8;
   text-align: left;
   vertical-align: top;
 }
 
 .inline-result-table th {
-  color: #111111;
+  color: #555555;
   font-weight: 700;
   white-space: nowrap;
 }

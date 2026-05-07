@@ -328,8 +328,6 @@ def extract_terms(question: str) -> list[str]:
         "派尔特",
         "强生",
         "爱惜康",
-        "Ethicon",
-        "强生医疗",
         "逸思",
         "湖南",
         "福建",
@@ -399,7 +397,7 @@ def filter_relevant_citations(citations: list[RAGCitation], terms: list[str]) ->
 def expand_required_entity_terms(terms: list[str]) -> list[str]:
     alias_groups = [
         {"瑞奇", "天津瑞奇", "健适瑞奇", "健适", "健适医疗", "天津瑞奇外科器械股份有限公司"},
-        {"强生", "爱惜康", "Ethicon", "强生医疗", "强生（上海）医疗器材有限公司"},
+        {"强生", "爱惜康", "强生（上海）医疗器材有限公司"},
         {"派尔特", "北京派尔特医疗科技股份有限公司"},
         {"逸思", "逸思（苏州）医疗科技有限公司"},
     ]

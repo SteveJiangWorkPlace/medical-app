@@ -21,18 +21,29 @@ type QueryExecutionResult = {
   total: number;
 };
 
+type Citation = {
+  document_id: number;
+  chunk_id: number;
+  title: string | null;
+  source_name?: string | null;
+  source_category?: string | null;
+  source_channel?: string | null;
+  publisher?: string | null;
+  publisher_type?: string | null;
+  content_scope?: string | null;
+  research_type?: string | null;
+  evidence_level?: string | null;
+  company_name?: string | null;
+  snippet: string;
+};
+
 type HybridAnswer = {
   question: string;
   session_id: string;
   answer: string;
   query_plan: QueryPlan;
   result: QueryExecutionResult;
-  citations: Array<{
-    document_id: number;
-    chunk_id: number;
-    title: string | null;
-    snippet: string;
-  }>;
+  citations: Citation[];
   assumptions: string[];
   sources: string[];
   confidence: string;
@@ -61,6 +72,7 @@ type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   result?: QueryExecutionResult;
+  citations?: Citation[];
   showTable?: boolean;
   streaming?: boolean;
 };
@@ -149,6 +161,7 @@ export function App() {
             ? {
                 ...message,
                 result: payload.result,
+                citations: payload.citations,
                 showTable: shouldShowTable(text, payload.result),
               }
             : message,
@@ -248,6 +261,9 @@ export function App() {
                     {message.role === "assistant" && !message.streaming && message.showTable && message.result && (
                       <ResultTable result={message.result} />
                     )}
+                    {message.role === "assistant" && !message.streaming && message.citations && message.citations.length > 0 && (
+                      <CitationList citations={message.citations} />
+                    )}
                   </div>
                 ))}
               </div>
@@ -326,6 +342,29 @@ function ResultTable({ result }: { result: QueryExecutionResult }) {
   );
 }
 
+function CitationList({ citations }: { citations: Citation[] }) {
+  const unique = citations
+    .filter((citation, index, list) => list.findIndex((item) => item.chunk_id === citation.chunk_id) === index)
+    .slice(0, 5);
+  if (unique.length === 0) return null;
+  return (
+    <div className="citation-list">
+      <div className="citation-heading">资料来源</div>
+      {unique.map((citation) => (
+        <div className="citation-item" key={`${citation.document_id}-${citation.chunk_id}`}>
+          <div className="citation-title">{citation.title || citation.source_name || `文档 ${citation.document_id}`}</div>
+          <div className="citation-meta">
+            {[humanSourceCategory(citation.source_category), citation.publisher, humanContentScope(citation.content_scope), citation.company_name]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+          <p>{trimSnippet(citation.snippet)}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function shouldShowTable(question: string, result: QueryExecutionResult): boolean {
   if (result.rows.length <= 1) return false;
   if (question.match(/表格|列表|列出|列给我|所有|明细|有哪些/)) return true;
@@ -350,6 +389,42 @@ function humanColumnName(column: string): string {
     min_linked_price: "最低联动价",
   };
   return names[column] ?? column;
+}
+
+function humanSourceCategory(value?: string | null): string {
+  const names: Record<string, string> = {
+    industry_report: "行业报告",
+    company_report: "公司/品牌报告",
+    industry_news: "行业新闻",
+    company_website: "企业官网",
+    expert_interview: "访谈记录",
+    policy_document: "政策文件",
+    procurement_notice: "集采公告",
+    academic_literature: "学术文献",
+    financial_report: "财报",
+    other: "其他资料",
+  };
+  return value ? names[value] ?? value : "";
+}
+
+function humanContentScope(value?: string | null): string {
+  const names: Record<string, string> = {
+    industry: "行业",
+    brand: "品牌",
+    product: "产品",
+    policy: "政策",
+    market_access: "准入",
+    pricing: "价格",
+    technology: "技术",
+    channel: "渠道",
+    other: "其他",
+  };
+  return value ? names[value] ?? value : "";
+}
+
+function trimSnippet(value: string): string {
+  const compact = value.replace(/\s+/g, " ").trim();
+  return compact.length > 180 ? `${compact.slice(0, 180)}...` : compact;
 }
 
 function formatValue(value: unknown): string {

@@ -352,6 +352,46 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.citation-list {
+  width: min(760px, 100%);
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.citation-heading {
+  margin-bottom: 8px;
+  color: #555555;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.citation-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.citation-title {
+  color: #111111;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.citation-meta {
+  margin-top: 4px;
+  color: #777777;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.citation-item p {
+  margin: 6px 0 0;
+  color: #444444;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .typing-cursor {
   display: inline-block;
   width: 7px;

@@ -46,7 +46,7 @@ textarea {
 }
 
 .sidebar {
-  padding: 24px;
+  padding: 18px 24px 24px;
   border-radius: 30px;
   overflow: auto;
 }
@@ -55,7 +55,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 20px;
+  padding-bottom: 10px;
 }
 
 .brand strong {
@@ -76,18 +76,18 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-  margin: 12px 0 24px;
+  margin: 4px 0 18px;
 }
 
 .metric {
-  padding: 14px 0;
+  padding: 8px 0;
   background: transparent;
 }
 
 .metric strong {
   display: block;
-  margin-top: 8px;
-  font-size: 24px;
+  margin-top: 5px;
+  font-size: 21px;
 }
 
 .examples {
@@ -206,13 +206,13 @@ textarea {
 .search-icon {
   position: absolute;
   left: 28px;
-  top: 28px;
+  top: 26px;
   color: #8a8a8a;
 }
 
 .ask-box textarea {
   width: 100%;
-  min-height: 84px;
+  min-height: 76px;
   resize: vertical;
   padding: 8px 8px 8px 38px;
   border: 0;
@@ -220,7 +220,8 @@ textarea {
   outline: none;
   color: #111111;
   background: transparent;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .ask-box button {
@@ -228,12 +229,13 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 42px;
-  padding: 0 18px;
+  height: 38px;
+  padding: 0 15px;
   border: 0;
   border-radius: 999px;
   background: #111111;
   color: white;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -292,7 +294,8 @@ textarea {
   padding: 0;
   border-radius: 0;
   white-space: pre-wrap;
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.65;
 }
 
 .user-message {
@@ -304,7 +307,7 @@ textarea {
 .assistant-message {
   margin-right: auto;
   color: #111111;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .assistant-message strong {
@@ -330,13 +333,13 @@ textarea {
   border-collapse: collapse;
   color: #111111;
   font: inherit;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .inline-result-table th,
 .inline-result-table td {
-  padding: 9px 10px;
+  padding: 7px 9px;
   border-bottom: 1px solid #e8e8e8;
   text-align: left;
   vertical-align: top;
@@ -362,7 +365,7 @@ textarea {
 .citation-heading {
   margin-bottom: 8px;
   color: #555555;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -373,7 +376,7 @@ textarea {
 
 .citation-title {
   color: #111111;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1.45;
 }
@@ -381,14 +384,14 @@ textarea {
 .citation-meta {
   margin-top: 4px;
   color: #777777;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
 .citation-item p {
   margin: 6px 0 0;
   color: #444444;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.55;
 }
 

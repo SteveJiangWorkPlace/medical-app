@@ -1,11 +1,14 @@
 import json
+import hashlib
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.llm.factory import get_llm_provider
-from app.models import Enterprise
+from app.models import Enterprise, HybridQACache, HybridSessionContext
 from app.schemas import HybridQuestionResponse, QueryExecutionResult, QueryPlan, RAGCitation
 from app.services.freeform_qa import answer_freeform_question
 from app.services.rag_qa import retrieve_relevant_chunks
@@ -20,12 +23,12 @@ class HybridContext:
     last_citations: list[dict] = field(default_factory=list)
 
 
-SESSION_CONTEXTS: dict[str, HybridContext] = {}
-
-
 def answer_hybrid_question(db: Session, question: str, session_id: str, limit: int = 6) -> HybridQuestionResponse:
-    context = SESSION_CONTEXTS.setdefault(session_id, HybridContext())
+    context = load_context(db, session_id)
     contextual_question = resolve_context(question, context)
+    cached = get_cached_response(db, question, session_id, contextual_question, context)
+    if cached:
+        return cached
 
     structured = answer_freeform_question(db, contextual_question, session_id)
     update_context_from_structured(context, structured.result)
@@ -48,7 +51,7 @@ def answer_hybrid_question(db: Session, question: str, session_id: str, limit: i
 
     answer = compose_hybrid_answer(contextual_question, structured.answer, structured.result, citations)
     confidence = "high" if structured.result.rows and citations else "medium" if structured.result.rows or citations else "low"
-    return HybridQuestionResponse(
+    response = HybridQuestionResponse(
         question=question,
         session_id=session_id,
         answer=answer,
@@ -64,6 +67,73 @@ def answer_hybrid_question(db: Session, question: str, session_id: str, limit: i
         confidence=confidence,
         context=context_to_dict(context),
     )
+    save_context(db, session_id, context)
+    cache_response(db, contextual_question, context, response)
+    return response
+
+
+def load_context(db: Session, session_id: str) -> HybridContext:
+    stored = db.get(HybridSessionContext, session_id)
+    if not stored:
+        return HybridContext()
+    return HybridContext(
+        last_enterprise_name=stored.last_enterprise_name,
+        last_project_name=stored.last_project_name,
+        last_procurement_unit=stored.last_procurement_unit,
+        last_structured_rows=stored.last_structured_rows or [],
+        last_citations=stored.last_citations or [],
+    )
+
+
+def save_context(db: Session, session_id: str, context: HybridContext) -> None:
+    stored = db.get(HybridSessionContext, session_id)
+    if not stored:
+        stored = HybridSessionContext(session_id=session_id)
+        db.add(stored)
+    stored.last_enterprise_name = context.last_enterprise_name
+    stored.last_project_name = context.last_project_name
+    stored.last_procurement_unit = context.last_procurement_unit
+    stored.last_structured_rows = context.last_structured_rows
+    stored.last_citations = context.last_citations
+    db.commit()
+
+
+def get_cached_response(
+    db: Session,
+    original_question: str,
+    session_id: str,
+    contextual_question: str,
+    context: HybridContext,
+) -> HybridQuestionResponse | None:
+    now = datetime.now(timezone.utc)
+    cached = db.get(HybridQACache, cache_key(contextual_question, context))
+    if not cached or cached.expires_at <= now:
+        return None
+    payload = dict(cached.payload)
+    payload["question"] = original_question
+    payload["session_id"] = session_id
+    payload["context"] = context_to_dict(context)
+    return HybridQuestionResponse.model_validate(payload)
+
+
+def cache_response(db: Session, contextual_question: str, context: HybridContext, response: HybridQuestionResponse) -> None:
+    settings = get_settings()
+    now = datetime.now(timezone.utc)
+    db.execute(delete(HybridQACache).where(HybridQACache.expires_at <= now))
+    payload = response.model_dump(mode="json")
+    payload["question"] = contextual_question
+    cached = HybridQACache(
+        cache_key=cache_key(contextual_question, context),
+        question=contextual_question,
+        payload=payload,
+        expires_at=now + timedelta(seconds=settings.hybrid_cache_ttl_seconds),
+    )
+    db.merge(cached)
+    db.commit()
+
+
+def cache_key(question: str, context: HybridContext) -> str:
+    return hashlib.sha256(question.strip().lower().encode("utf-8")).hexdigest()
 
 
 def resolve_context(question: str, context: HybridContext) -> str:

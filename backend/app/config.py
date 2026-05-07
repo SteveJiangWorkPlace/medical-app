@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     gemini_chat_model: str = "gemini-2.5-flash"
     llm_temperature: float = 0
     admin_api_key: str | None = None
+    hybrid_cache_ttl_seconds: int = 3600
+    hybrid_rate_limit_per_minute: int = 30
     http_proxy: str | None = None
     https_proxy: str | None = None
 

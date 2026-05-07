@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, Text, func
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
@@ -237,4 +237,40 @@ class QALog(Base):
     sql_query: Mapped[str | None] = mapped_column(Text)
     answer: Mapped[str | None] = mapped_column(Text)
     sources: Mapped[dict | None] = mapped_column(JSONB)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class HybridSessionContext(Base):
+    __tablename__ = "hybrid_session_contexts"
+
+    session_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    last_enterprise_name: Mapped[str | None] = mapped_column(Text)
+    last_project_name: Mapped[str | None] = mapped_column(Text)
+    last_procurement_unit: Mapped[str | None] = mapped_column(Text)
+    last_structured_rows: Mapped[list[dict] | None] = mapped_column(JSONB)
+    last_citations: Mapped[list[dict] | None] = mapped_column(JSONB)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class HybridQACache(Base):
+    __tablename__ = "hybrid_qa_cache"
+
+    cache_key: Mapped[str] = mapped_column(Text, primary_key=True)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    expires_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class ApiRateLimit(Base):
+    __tablename__ = "api_rate_limits"
+    __table_args__ = (UniqueConstraint("bucket_key", "window_start", name="uq_api_rate_limits_bucket_window"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    bucket_key: Mapped[str] = mapped_column(Text, nullable=False)
+    window_start: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False)
+    request_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -22,7 +22,7 @@ from app.services.analysis_qa import answer_analysis_question
 from app.services.freeform_qa import answer_freeform_question
 from app.services.hybrid_qa import answer_hybrid_question
 from app.services.structured_qa import answer_structured_question
-from app.security import require_admin_api_key
+from app.security import require_admin_api_key, require_hybrid_rate_limit
 
 
 router = APIRouter(prefix="/qa", tags=["qa"])
@@ -109,6 +109,7 @@ def freeform_qa_endpoint(
 @router.post("/hybrid", response_model=HybridQuestionResponse)
 def hybrid_qa_endpoint(
     payload: HybridQuestionRequest,
+    _: None = Depends(require_hybrid_rate_limit),
     db: Session = Depends(get_db),
 ) -> HybridQuestionResponse:
     result = answer_hybrid_question(db, payload.question, payload.session_id, payload.limit)

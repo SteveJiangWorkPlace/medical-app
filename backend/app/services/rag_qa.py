@@ -323,9 +323,13 @@ def extract_terms(question: str) -> list[str]:
         "瑞奇",
         "天津瑞奇",
         "健适瑞奇",
+        "健适",
+        "健适医疗",
         "派尔特",
         "强生",
         "爱惜康",
+        "Ethicon",
+        "强生医疗",
         "逸思",
         "湖南",
         "福建",
@@ -376,7 +380,7 @@ def filter_relevant_citations(citations: list[RAGCitation], terms: list[str]) ->
     if not terms:
         return citations
 
-    required_entity_terms = [term for term in terms if term in {"瑞奇", "天津瑞奇", "健适瑞奇", "派尔特", "强生", "爱惜康", "逸思"}]
+    required_entity_terms = expand_required_entity_terms(terms)
     required_project_terms = [term for term in terms if term in {"京津冀", "3+N", "3＋N", "湖南", "福建", "重庆", "8省", "10省", "15省"}]
 
     relevant = []
@@ -390,6 +394,21 @@ def filter_relevant_citations(citations: list[RAGCitation], terms: list[str]) ->
             continue
         relevant.append(citation)
     return relevant
+
+
+def expand_required_entity_terms(terms: list[str]) -> list[str]:
+    alias_groups = [
+        {"瑞奇", "天津瑞奇", "健适瑞奇", "健适", "健适医疗", "天津瑞奇外科器械股份有限公司"},
+        {"强生", "爱惜康", "Ethicon", "强生医疗", "强生（上海）医疗器材有限公司"},
+        {"派尔特", "北京派尔特医疗科技股份有限公司"},
+        {"逸思", "逸思（苏州）医疗科技有限公司"},
+    ]
+    expanded: list[str] = []
+    for group in alias_groups:
+        if any(term in group for term in terms):
+            expanded.extend(sorted(group, key=len, reverse=True))
+    seen = set()
+    return [term for term in expanded if not (term in seen or seen.add(term))]
 
 
 def citation_search_text(citation: RAGCitation) -> str:

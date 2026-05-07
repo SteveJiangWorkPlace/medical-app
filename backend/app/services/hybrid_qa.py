@@ -181,6 +181,7 @@ def compose_with_llm(
     context = "\n\n".join(
         f"[RAG资料{index}] 标题：{item.title or item.source_name or '未命名'}\n"
         f"来源分类：{item.source_category or ''} / {item.content_scope or ''}\n"
+        f"资料关联企业：{item.company_name or '未标注'}\n"
         f"内容：{item.snippet}"
         for index, item in enumerate(citations[:5], start=1)
     )
@@ -190,6 +191,7 @@ def compose_with_llm(
 要求：
 - 先给结论，再分开说明“集采数据依据”和“RAG资料补充”。
 - 如果结构化数据和RAG资料没有直接对应关系，要明确区分，不要强行推导。
+- RAG资料可以来自其他品牌专家访谈；如果资料明确提到用户询问的品牌/联盟，可作为交叉验证引用，但必须说明这是第三方专家视角或行业视角。
 - linked_price 是联动价格，不是严格中标价。
 - 当前数据库没有真实采购量、销量或市场份额字段；涉及市场份额只能做方向性分析。
 - 回答必须体现两类数据如何互相补充。

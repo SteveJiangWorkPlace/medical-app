@@ -48,33 +48,39 @@ def upgrade() -> None:
         sa.UniqueConstraint("bucket_key", "window_start", name="uq_api_rate_limits_bucket_window"),
     )
 
-    op.create_index("idx_device_price_catalogs_project_name", "device_price_catalogs", ["project_name"])
-    op.create_index("idx_device_price_catalogs_procurement_unit", "device_price_catalogs", ["procurement_unit"])
-    op.create_index("idx_device_price_catalogs_linked_price", "device_price_catalogs", ["linked_price"])
-    op.create_index("idx_device_price_catalogs_applicant_enterprise_id", "device_price_catalogs", ["applicant_enterprise_id"])
-    op.create_index("idx_device_price_catalogs_manufacturer_id", "device_price_catalogs", ["manufacturer_id"])
-    op.create_index("idx_device_price_catalogs_medical_device_field", "device_price_catalogs", ["medical_device_field"])
-    op.create_index("idx_document_chunks_source_category", "document_chunks", ["source_category"])
-    op.create_index("idx_document_chunks_medical_device_field", "document_chunks", ["medical_device_field"])
-    op.create_index("idx_parsed_documents_source_category", "parsed_documents", ["source_category"])
-    op.create_index("idx_parsed_documents_medical_device_field", "parsed_documents", ["medical_device_field"])
-    op.create_index("idx_hybrid_qa_cache_expires_at", "hybrid_qa_cache", ["expires_at"])
-    op.create_index("idx_api_rate_limits_bucket_key", "api_rate_limits", ["bucket_key"])
+    create_index_if_not_exists("idx_device_price_catalogs_project_name", "device_price_catalogs", "project_name")
+    create_index_if_not_exists("idx_device_price_catalogs_procurement_unit", "device_price_catalogs", "procurement_unit")
+    create_index_if_not_exists("idx_device_price_catalogs_linked_price", "device_price_catalogs", "linked_price")
+    create_index_if_not_exists(
+        "idx_device_price_catalogs_applicant_enterprise_id",
+        "device_price_catalogs",
+        "applicant_enterprise_id",
+    )
+    create_index_if_not_exists("idx_device_price_catalogs_manufacturer_id", "device_price_catalogs", "manufacturer_id")
+    create_index_if_not_exists("idx_device_price_catalogs_medical_device_field", "device_price_catalogs", "medical_device_field")
+    create_index_if_not_exists("idx_document_chunks_source_category", "document_chunks", "source_category")
+    create_index_if_not_exists("idx_document_chunks_medical_device_field", "document_chunks", "medical_device_field")
+    create_index_if_not_exists("idx_parsed_documents_source_category", "parsed_documents", "source_category")
+    create_index_if_not_exists("idx_parsed_documents_medical_device_field", "parsed_documents", "medical_device_field")
+    create_index_if_not_exists("idx_hybrid_qa_cache_expires_at", "hybrid_qa_cache", "expires_at")
+    create_index_if_not_exists("idx_api_rate_limits_bucket_key", "api_rate_limits", "bucket_key")
 
 
 def downgrade() -> None:
-    op.drop_index("idx_api_rate_limits_bucket_key", table_name="api_rate_limits")
-    op.drop_index("idx_hybrid_qa_cache_expires_at", table_name="hybrid_qa_cache")
-    op.drop_index("idx_parsed_documents_medical_device_field", table_name="parsed_documents")
-    op.drop_index("idx_parsed_documents_source_category", table_name="parsed_documents")
-    op.drop_index("idx_document_chunks_medical_device_field", table_name="document_chunks")
-    op.drop_index("idx_document_chunks_source_category", table_name="document_chunks")
-    op.drop_index("idx_device_price_catalogs_medical_device_field", table_name="device_price_catalogs")
-    op.drop_index("idx_device_price_catalogs_manufacturer_id", table_name="device_price_catalogs")
-    op.drop_index("idx_device_price_catalogs_applicant_enterprise_id", table_name="device_price_catalogs")
-    op.drop_index("idx_device_price_catalogs_linked_price", table_name="device_price_catalogs")
-    op.drop_index("idx_device_price_catalogs_procurement_unit", table_name="device_price_catalogs")
-    op.drop_index("idx_device_price_catalogs_project_name", table_name="device_price_catalogs")
+    op.execute("DROP INDEX IF EXISTS idx_api_rate_limits_bucket_key")
+    op.execute("DROP INDEX IF EXISTS idx_hybrid_qa_cache_expires_at")
+    op.execute("DROP INDEX IF EXISTS idx_parsed_documents_medical_device_field")
+    op.execute("DROP INDEX IF EXISTS idx_document_chunks_medical_device_field")
+    op.execute("DROP INDEX IF EXISTS idx_device_price_catalogs_medical_device_field")
+    op.execute("DROP INDEX IF EXISTS idx_device_price_catalogs_manufacturer_id")
+    op.execute("DROP INDEX IF EXISTS idx_device_price_catalogs_applicant_enterprise_id")
+    op.execute("DROP INDEX IF EXISTS idx_device_price_catalogs_linked_price")
+    op.execute("DROP INDEX IF EXISTS idx_device_price_catalogs_procurement_unit")
+    op.execute("DROP INDEX IF EXISTS idx_device_price_catalogs_project_name")
     op.drop_table("api_rate_limits")
     op.drop_table("hybrid_qa_cache")
     op.drop_table("hybrid_session_contexts")
+
+
+def create_index_if_not_exists(index_name: str, table_name: str, column_name: str) -> None:
+    op.execute(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})")
